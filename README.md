@@ -8,7 +8,7 @@ Add this repo as a git submodule to your Kontena Pharos project:
 
 ```sh
 $ mkdir -p addons
-$ git submodule add https://github.com/jakolehm/pharos-addon-datadog-agent addons/
+$ git submodule add https://github.com/jakolehm/pharos-addon-datadog-agent addons/datadog-agent
 ```
 
 Enable it in your cluster.yml:
