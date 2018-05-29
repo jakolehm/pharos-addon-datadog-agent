@@ -1,0 +1,36 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: datadog
+rules:
+- nonResourceURLs:
+  - "/version"  # Used to get apiserver version metadata
+  - "/healthz"  # Healthcheck
+  verbs: ["get"]
+- apiGroups: [""]
+  resources:
+    - "nodes"
+    - "nodes/proxy"
+    - "nodes/spec"
+    - "nodes/metrics"
+    - "namespaces"  #
+    - "events"      # Cluster events
+    - "services"    # kube_service tag
+    - "pods"
+    - "endpoints"   # kube_service tag
+    - "componentstatuses"
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources:
+    - "configmaps"
+  resourceNames: ["datadog-leader-election"]
+  verbs: ["get", "list", "create", "delete", "update"]
+- apiGroups: [""]
+  resources:
+    - "configmaps"
+  verbs: ["create"]
+- apiGroups: [""]
+  resources:
+    - "configmaps"
+  resourceNames: ["datadogtoken"]
+  verbs: ["get", "update"]

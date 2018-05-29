@@ -1,0 +1,110 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: datadog-agent
+  namespace: kube-system
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: datadog-agent
+      name: datadog-agent
+    spec:
+      serviceAccountName: datadog
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      containers:
+      - image: docker.io/datadog/agent:<%= version %>
+        imagePullPolicy: Always
+        name: datadog-agent
+        ports:
+          - containerPort: 8125
+            name: dogstatsdport
+            protocol: UDP
+          - containerPort: 8126
+            name: traceport
+            protocol: TCP
+        env:
+          - name: DD_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: datadog-api-key
+                key: api-key
+          - name: KUBERNETES
+            value: "true"
+          - name: DD_KUBERNETES_KUBELET_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          <% if config.tags %>
+          - name: DD_TAGS
+            value: "<%= config.tags.join(',') %>"
+          <% end %>
+          - name: DD_HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: DD_LOG_LEVEL
+            value: "info"
+          <% if config.logs %>
+          - name: DD_LOGS_ENABLED
+            value: "true"
+          - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+            value: "true"
+          <% end %>
+          - name: DD_KUBELET_TLS_VERIFY
+            value: "false"
+          - name: DD_KUBELET_CLIENT_CRT
+            value: "/etc/kubernetes/client-cert.pem"
+          - name: DD_KUBELET_CLIENT_KEY
+            value: "/etc/kubernetes-client-secrets/client-key.pem"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+          - name: dockersocket
+            mountPath: /var/run/docker.sock
+          - name: procdir
+            mountPath: /host/proc
+            readOnly: true
+          - name: cgroups
+            mountPath: /host/sys/fs/cgroup
+            readOnly: true
+          - name: heapster-config
+            mountPath: /etc/kubernetes
+          - name: client-secrets
+            mountPath: /etc/kubernetes-client-secrets
+          - name: pointerdir
+            mountPath: /opt/datadog-agent/run
+        livenessProbe:
+          exec:
+            command:
+            - ./probe.sh
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+        - hostPath:
+            path: /var/run/docker.sock
+          name: dockersocket
+        - hostPath:
+            path: /proc
+          name: procdir
+        - hostPath:
+            path: /sys/fs/cgroup
+          name: cgroups
+        - configMap:
+            name: heapster
+          name: heapster-config
+        - secret:
+            secretName: heapster-client-cert
+          name: client-secrets
+        - hostPath:
+            path: /opt/datadog-agent/run
+          name: pointerdir
