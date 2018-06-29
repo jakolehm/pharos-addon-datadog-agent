@@ -48,7 +48,7 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
           - name: DD_LOG_LEVEL
-            value: "info"
+            value: "error"
           <% if config.logs %>
           - name: DD_LOGS_ENABLED
             value: "true"
@@ -57,10 +57,6 @@ spec:
           <% end %>
           - name: DD_KUBELET_TLS_VERIFY
             value: "false"
-          - name: DD_KUBELET_CLIENT_CRT
-            value: "/etc/kubernetes/client-cert.pem"
-          - name: DD_KUBELET_CLIENT_KEY
-            value: "/etc/kubernetes-client-secrets/client-key.pem"
         resources:
           requests:
             memory: "128Mi"
@@ -77,10 +73,6 @@ spec:
           - name: cgroups
             mountPath: /host/sys/fs/cgroup
             readOnly: true
-          - name: heapster-config
-            mountPath: /etc/kubernetes
-          - name: client-secrets
-            mountPath: /etc/kubernetes-client-secrets
           - name: pointerdir
             mountPath: /opt/datadog-agent/run
         livenessProbe:
@@ -99,12 +91,6 @@ spec:
         - hostPath:
             path: /sys/fs/cgroup
           name: cgroups
-        - configMap:
-            name: heapster
-          name: heapster-config
-        - secret:
-            secretName: heapster-client-cert
-          name: client-secrets
         - hostPath:
             path: /opt/datadog-agent/run
           name: pointerdir
